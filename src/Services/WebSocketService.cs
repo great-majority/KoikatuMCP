@@ -107,7 +107,9 @@ public class WebSocketService : IDisposable
         // Receive response
         var responseJson = await ReceiveMessageAsync(webSocket, combinedCts.Token);
 
-        _logger.LogInformation("RECEIVED: {Data}", responseJson);
+        // Log response but truncate large image data
+        var logData = TruncateImageDataForLog(responseJson);
+        _logger.LogInformation("RECEIVED: {Data}", logData);
 
         if (typeof(TResponse) == typeof(string))
         {
@@ -115,6 +117,36 @@ public class WebSocketService : IDisposable
         }
 
         return JsonSerializer.Deserialize<TResponse>(responseJson, _jsonOptions);
+    }
+
+    private string TruncateImageDataForLog(string responseJson)
+    {
+        try
+        {
+            // Parse JSON to check if it contains screenshot data
+            using var document = JsonDocument.Parse(responseJson);
+            var root = document.RootElement;
+
+            if (root.TryGetProperty("type", out var typeElement) &&
+                typeElement.GetString() == "success" &&
+                root.TryGetProperty("data", out var dataElement) &&
+                dataElement.TryGetProperty("image", out var imageElement))
+            {
+                var imageData = imageElement.GetString();
+                if (!string.IsNullOrEmpty(imageData) && imageData.Length > 100)
+                {
+                    // Create a truncated version for logging
+                    var truncatedResponse = responseJson.Replace(imageData, $"[BASE64_IMAGE_DATA_TRUNCATED:{imageData.Length}_chars]");
+                    return truncatedResponse;
+                }
+            }
+        }
+        catch (JsonException)
+        {
+            // If JSON parsing fails, return original
+        }
+
+        return responseJson;
     }
 
     private async Task<string> ReceiveMessageAsync(ClientWebSocket webSocket, CancellationToken cancellationToken)

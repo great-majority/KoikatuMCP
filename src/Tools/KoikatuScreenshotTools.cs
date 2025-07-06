@@ -3,6 +3,7 @@ using System.Text.Json;
 using KoikatuMCP.Services;
 using KoikatuMCP.Models;
 using ModelContextProtocol.Server;
+using Microsoft.Extensions.AI;
 
 namespace KoikatuMCP.Tools;
 
@@ -10,7 +11,7 @@ namespace KoikatuMCP.Tools;
 public static class KoikatuScreenshotTools
 {
     [McpServerTool, Description("Capture the current Studio view as a PNG image")]
-    public static async Task<string> Screenshot(
+    public static async Task<AIContent> Screenshot(
         WebSocketService webSocketService,
         [Description("Image width in pixels (default: 854)")] int? width = null,
         [Description("Image height in pixels (default: 480)")] int? height = null,
@@ -38,31 +39,21 @@ public static class KoikatuScreenshotTools
                     var data = JsonSerializer.Deserialize<ScreenshotData>(screenshotData.ToString()!);
                     if (data != null)
                     {
-                        var result = $"📸 Screenshot captured successfully!\n";
-                        result += $"   📏 Size: {data.Width} x {data.Height} pixels\n";
-                        result += $"   📁 Format: {data.Format.ToUpper()}\n";
-                        result += $"   💾 File Size: {FormatFileSize(data.Size)}\n";
-                        result += $"   🌈 Transparency: {(data.Transparency ? "Yes" : "No")}\n";
-                        result += $"   🖼️ Base64 Image Data: {data.Image.Length} characters\n";
-                        result += $"\nTo use this image:\n";
-                        result += $"1. Copy the base64 data from the 'image' field\n";
-                        result += $"2. Decode it to save as a PNG file\n";
-                        result += $"3. Or use it directly in HTML: <img src=\"data:image/png;base64,{data.Image.Substring(0, Math.Min(50, data.Image.Length))}...\" />";
-
-                        return result;
+                        // Return the image data directly as DataContent
+                        return new DataContent($"data:image/{data.Format.ToLower()};base64,{data.Image}");
                     }
                 }
 
-                return $"✅ Screenshot taken successfully! {response.Message}";
+                return new TextContent($"✅ Screenshot taken successfully! {response.Message}");
             }
             else
             {
-                return $"❌ Failed to take screenshot: {response?.Message ?? "Unknown error"}";
+                return new TextContent($"❌ Failed to take screenshot: {response?.Message ?? "Unknown error"}");
             }
         }
         catch (Exception ex)
         {
-            return $"❌ Failed to take screenshot: {ex.Message}";
+            return new TextContent($"❌ Failed to take screenshot: {ex.Message}");
         }
     }
 
