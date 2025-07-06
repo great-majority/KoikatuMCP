@@ -1,0 +1,105 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ windows-latest ]
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Restore dependencies
+      run: dotnet restore src/KoikatuMCP.csproj
+      
+    - name: Build
+      run: dotnet build src/KoikatuMCP.csproj --configuration Release --no-restore
+      
+    - name: Test (if tests exist)
+      run: |
+        if (Test-Path "tests") {
+          dotnet test --configuration Release --no-build --verbosity normal
+        } else {
+          Write-Host "No tests found, skipping test step"
+        }
+      shell: pwsh
+      
+  publish:
+    name: Publish Release Binaries
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'release'
+    permissions:
+      contents: write
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Publish
+      run: |
+        dotnet publish src/KoikatuMCP.csproj \
+          --configuration Release \
+          --runtime win-x64 \
+          --self-contained true \
+          --property:PublishSingleFile=true \
+          --output publish/win-x64
+          
+    - name: Copy documentation
+      run: |
+        cp README.md publish/win-x64/
+        cp README.ja.md publish/win-x64/
+        cp LICENSE publish/win-x64/
+        
+    - name: Create archive
+      run: |
+        cd publish/win-x64
+        zip -r ../../KoikatuMCP-win-x64.zip .
+        
+    - name: Upload release asset
+      uses: softprops/action-gh-release@v2
+      with:
+        files: KoikatuMCP-win-x64.zip
+
+  lint:
+    name: Code Quality Check
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Restore dependencies
+      run: dotnet restore src/KoikatuMCP.csproj
+      
+    - name: Check formatting
+      run: dotnet format src/KoikatuMCP.csproj --verify-no-changes --verbosity diagnostic
+      
+    - name: Run analyzer
+      run: dotnet build src/KoikatuMCP.csproj --configuration Release --verbosity normal

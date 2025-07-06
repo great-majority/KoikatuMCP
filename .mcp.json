@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "koikatu-mcp": {
+      "command": "src/bin/Release/net8.0/KoikatuMCP.exe",
+      "env": {
+        "KKSTUDIOSOCKET_URL": "ws://127.0.0.1:8765/ws"
+      }
+    }
+  }
+}

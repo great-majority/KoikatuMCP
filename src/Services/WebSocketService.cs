@@ -1,0 +1,194 @@
+using System.Net.WebSockets;
+using System.Text;
+using System.Text.Json;
+using KoikatuMCP.Models;
+using Microsoft.Extensions.Logging;
+
+namespace KoikatuMCP.Services;
+
+public class WebSocketService : IDisposable
+{
+    private readonly ILogger<WebSocketService> _logger;
+    private readonly string _uri;
+    private readonly JsonSerializerOptions _jsonOptions;
+    private readonly SemaphoreSlim _connectionLock = new(1, 1);
+
+    private ClientWebSocket? _webSocket;
+    private CancellationTokenSource? _cancellationTokenSource;
+    private bool _disposed;
+
+    public WebSocketService(ILogger<WebSocketService> logger)
+    {
+        _logger = logger;
+        _uri = Environment.GetEnvironmentVariable("KKSTUDIOSOCKET_URL") ?? "ws://127.0.0.1:8765/ws";
+        _jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = true
+        };
+    }
+
+    public async Task<TResponse?> SendRequestAsync<TRequest, TResponse>(TRequest request, int timeoutMs = 5000)
+        where TRequest : BaseCommand
+    {
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(WebSocketService));
+
+        await _connectionLock.WaitAsync();
+        try
+        {
+            var webSocket = await GetOrCreateConnectionAsync();
+            return await SendAndReceiveAsync<TRequest, TResponse>(webSocket, request, timeoutMs);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "WebSocket communication failed, will reset connection for next request");
+            CloseAndDisposeConnection();
+            throw;
+        }
+        finally
+        {
+            _connectionLock.Release();
+        }
+    }
+
+    private async Task<ClientWebSocket> GetOrCreateConnectionAsync()
+    {
+        // Check if current connection is usable
+        if (_webSocket?.State == WebSocketState.Open)
+        {
+            return _webSocket;
+        }
+
+        // Clean up any existing connection
+        CloseAndDisposeConnection();
+
+        // Create new connection
+        _webSocket = new ClientWebSocket();
+        _cancellationTokenSource = new CancellationTokenSource();
+
+        try
+        {
+            await _webSocket.ConnectAsync(new Uri(_uri), _cancellationTokenSource.Token);
+            _logger.LogInformation("Connected to KKStudioSocket WebSocket server at {Uri}", _uri);
+            return _webSocket;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to connect to WebSocket server at {Uri}", _uri);
+            CloseAndDisposeConnection();
+            throw;
+        }
+    }
+
+    private async Task<TResponse?> SendAndReceiveAsync<TRequest, TResponse>(
+        ClientWebSocket webSocket,
+        TRequest request,
+        int timeoutMs)
+        where TRequest : BaseCommand
+    {
+        var json = JsonSerializer.Serialize(request, _jsonOptions);
+        var messageBytes = Encoding.UTF8.GetBytes(json);
+
+        _logger.LogInformation("SENT: {Data}", json);
+
+        using var timeoutCts = new CancellationTokenSource(timeoutMs);
+        using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(
+            _cancellationTokenSource?.Token ?? CancellationToken.None,
+            timeoutCts.Token);
+
+        // Send message
+        await webSocket.SendAsync(
+            new ArraySegment<byte>(messageBytes),
+            WebSocketMessageType.Text,
+            true,
+            combinedCts.Token);
+
+        // Receive response
+        var responseJson = await ReceiveMessageAsync(webSocket, combinedCts.Token);
+
+        _logger.LogInformation("RECEIVED: {Data}", responseJson);
+
+        if (typeof(TResponse) == typeof(string))
+        {
+            return (TResponse)(object)responseJson;
+        }
+
+        return JsonSerializer.Deserialize<TResponse>(responseJson, _jsonOptions);
+    }
+
+    private async Task<string> ReceiveMessageAsync(ClientWebSocket webSocket, CancellationToken cancellationToken)
+    {
+        var buffer = new byte[8192];
+        var messageBuilder = new List<byte>();
+        WebSocketReceiveResult result;
+
+        do
+        {
+            result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
+
+            if (result.MessageType == WebSocketMessageType.Close)
+            {
+                throw new WebSocketException("WebSocket connection was closed by the server");
+            }
+
+            if (result.MessageType != WebSocketMessageType.Text)
+            {
+                throw new WebSocketException($"Unexpected message type: {result.MessageType}");
+            }
+
+            messageBuilder.AddRange(buffer.Take(result.Count));
+        } while (!result.EndOfMessage);
+
+        return Encoding.UTF8.GetString(messageBuilder.ToArray());
+    }
+
+    private void CloseAndDisposeConnection()
+    {
+        try
+        {
+            _cancellationTokenSource?.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Expected if already disposed
+        }
+
+        try
+        {
+            if (_webSocket?.State == WebSocketState.Open)
+            {
+                _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None)
+                    .GetAwaiter().GetResult();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Error while closing WebSocket (expected during cleanup)");
+        }
+
+        _webSocket?.Dispose();
+        _cancellationTokenSource?.Dispose();
+
+        _webSocket = null;
+        _cancellationTokenSource = null;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+
+        _connectionLock.Wait();
+        try
+        {
+            CloseAndDisposeConnection();
+            _disposed = true;
+        }
+        finally
+        {
+            _connectionLock.Release();
+        }
+
+        _connectionLock.Dispose();
+    }
+}
