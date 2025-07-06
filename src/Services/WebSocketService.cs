@@ -126,8 +126,8 @@ public class WebSocketService : IDisposable
             // Parse JSON to check if it contains screenshot data
             using var document = JsonDocument.Parse(responseJson);
             var root = document.RootElement;
-            
-            if (root.TryGetProperty("type", out var typeElement) && 
+
+            if (root.TryGetProperty("type", out var typeElement) &&
                 typeElement.GetString() == "success" &&
                 root.TryGetProperty("data", out var dataElement) &&
                 dataElement.TryGetProperty("image", out var imageElement))
@@ -145,7 +145,7 @@ public class WebSocketService : IDisposable
         {
             // If JSON parsing fails, return original
         }
-        
+
         return responseJson;
     }
 
