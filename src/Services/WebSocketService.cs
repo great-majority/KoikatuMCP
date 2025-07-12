@@ -1,8 +1,8 @@
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
-using KoikatuMCP.Models;
 using Microsoft.Extensions.Logging;
+using KKStudioSocket.Models.Requests;
 
 namespace KoikatuMCP.Services;
 
@@ -23,8 +23,9 @@ public class WebSocketService : IDisposable
         _uri = Environment.GetEnvironmentVariable("KKSTUDIOSOCKET_URL") ?? "ws://127.0.0.1:8765/ws";
         _jsonOptions = new JsonSerializerOptions
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = true
+            PropertyNamingPolicy = null, // Use original property names (lowercase)
+            WriteIndented = true,
+            IncludeFields = true // Include public fields for serialization
         };
     }
 
@@ -42,7 +43,8 @@ public class WebSocketService : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "WebSocket communication failed, will reset connection for next request");
+            _logger.LogError(ex, "WebSocket communication failed - Type: {ExceptionType}, Message: {Message}, Request: {RequestType}",
+                ex.GetType().Name, ex.Message, typeof(TRequest).Name);
             CloseAndDisposeConnection();
             throw;
         }
@@ -97,26 +99,59 @@ public class WebSocketService : IDisposable
             _cancellationTokenSource?.Token ?? CancellationToken.None,
             timeoutCts.Token);
 
-        // Send message
-        await webSocket.SendAsync(
-            new ArraySegment<byte>(messageBytes),
-            WebSocketMessageType.Text,
-            true,
-            combinedCts.Token);
-
-        // Receive response
-        var responseJson = await ReceiveMessageAsync(webSocket, combinedCts.Token);
-
-        // Log response but truncate large image data
-        var logData = TruncateImageDataForLog(responseJson);
-        _logger.LogInformation("RECEIVED: {Data}", logData);
-
-        if (typeof(TResponse) == typeof(string))
+        try
         {
-            return (TResponse)(object)responseJson;
-        }
+            // Send message
+            _logger.LogDebug("Sending message to WebSocket...");
+            await webSocket.SendAsync(
+                new ArraySegment<byte>(messageBytes),
+                WebSocketMessageType.Text,
+                true,
+                combinedCts.Token);
+            _logger.LogDebug("Message sent successfully");
 
-        return JsonSerializer.Deserialize<TResponse>(responseJson, _jsonOptions);
+            // Receive response
+            _logger.LogDebug("Waiting for response...");
+            var responseJson = await ReceiveMessageAsync(webSocket, combinedCts.Token);
+            _logger.LogDebug("Response received successfully");
+
+            // Log response but truncate large image data only for screenshot commands
+            if (typeof(TRequest) == typeof(ScreenshotCommand))
+            {
+                var logData = TruncateImageDataForLog(responseJson);
+                _logger.LogInformation("RECEIVED (processed): {Data}", logData);
+            }
+            else
+            {
+                // Log raw response
+                _logger.LogInformation("RECEIVED: {Data}", responseJson);
+            }
+
+
+            if (typeof(TResponse) == typeof(string))
+            {
+                return (TResponse)(object)responseJson;
+            }
+
+            return JsonSerializer.Deserialize<TResponse>(responseJson, _jsonOptions);
+        }
+        catch (OperationCanceledException ex) when (timeoutCts.Token.IsCancellationRequested)
+        {
+            _logger.LogError("WebSocket request timed out after {TimeoutMs}ms for {RequestType}", timeoutMs, typeof(TRequest).Name);
+            throw new TimeoutException($"WebSocket request timed out after {timeoutMs}ms", ex);
+        }
+        catch (WebSocketException ex)
+        {
+            _logger.LogError(ex, "WebSocket error during {RequestType} - State: {State}, CloseStatus: {CloseStatus}",
+                typeof(TRequest).Name, webSocket.State, webSocket.CloseStatus);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error during {RequestType} communication - Type: {ExceptionType}",
+                typeof(TRequest).Name, ex.GetType().Name);
+            throw;
+        }
     }
 
     private string TruncateImageDataForLog(string responseJson)

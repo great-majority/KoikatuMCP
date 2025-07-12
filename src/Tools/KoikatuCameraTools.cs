@@ -1,7 +1,8 @@
 using System.ComponentModel;
 using KoikatuMCP.Services;
-using KoikatuMCP.Models;
 using ModelContextProtocol.Server;
+using KKStudioSocket.Models.Requests;
+using KKStudioSocket.Models.Responses;
 
 namespace KoikatuMCP.Tools;
 
@@ -26,15 +27,15 @@ public static class KoikatuCameraTools
                 fov = fov ?? 0
             };
 
-            var response = await webSocketService.SendRequestAsync<CameraCommand, WebSocketResponse>(request);
+            var response = await webSocketService.SendRequestAsync<CameraCommand, SuccessResponse>(request);
 
-            if (response?.Type == "success")
+            if (response?.type == "success")
             {
-                return $"✅ Camera view updated successfully! {response.Message}";
+                return $"✅ Camera view updated successfully! {response.message}";
             }
             else
             {
-                return $"❌ Failed to set camera view: {response?.Message ?? "Unknown error"}";
+                return $"❌ Failed to set camera view: {response?.message ?? "Unknown error"}";
             }
         }
         catch (Exception ex)
@@ -57,15 +58,15 @@ public static class KoikatuCameraTools
                 cameraId = cameraId
             };
 
-            var response = await webSocketService.SendRequestAsync<CameraCommand, WebSocketResponse>(request);
+            var response = await webSocketService.SendRequestAsync<CameraCommand, SuccessResponse>(request);
 
-            if (response?.Type == "success")
+            if (response?.type == "success")
             {
-                return $"✅ Switched to camera successfully! {response.Message}";
+                return $"✅ Switched to camera successfully! {response.message}";
             }
             else
             {
-                return $"❌ Failed to switch camera: {response?.Message ?? "Unknown error"}";
+                return $"❌ Failed to switch camera: {response?.message ?? "Unknown error"}";
             }
         }
         catch (Exception ex)
@@ -86,15 +87,15 @@ public static class KoikatuCameraTools
                 command = "free"
             };
 
-            var response = await webSocketService.SendRequestAsync<CameraCommand, WebSocketResponse>(request);
+            var response = await webSocketService.SendRequestAsync<CameraCommand, SuccessResponse>(request);
 
-            if (response?.Type == "success")
+            if (response?.type == "success")
             {
-                return $"✅ Switched to free camera mode! {response.Message}";
+                return $"✅ Switched to free camera mode! {response.message}";
             }
             else
             {
-                return $"❌ Failed to switch to free camera: {response?.Message ?? "Unknown error"}";
+                return $"❌ Failed to switch to free camera: {response?.message ?? "Unknown error"}";
             }
         }
         catch (Exception ex)
@@ -115,15 +116,15 @@ public static class KoikatuCameraTools
                 command = "getview"
             };
 
-            var response = await webSocketService.SendRequestAsync<CameraCommand, WebSocketResponse>(request);
+            var response = await webSocketService.SendRequestAsync<CameraCommand, CameraViewResponse>(request);
 
-            if (response?.Type == "success")
+            if (response?.type == "success")
             {
-                var pos = response.Pos ?? new float[] { 0, 0, 0 };
-                var rot = response.Rot ?? new float[] { 0, 0, 0 };
-                var fov = response.Fov ?? 35.0f;
-                var mode = response.Mode ?? "unknown";
-                var activeCameraId = response.ActiveCameraId;
+                var pos = response.pos ?? new float[] { 0, 0, 0 };
+                var rot = response.rot ?? new float[] { 0, 0, 0 };
+                var fov = response.fov;
+                var mode = response.mode ?? "unknown";
+                var activeCameraId = response.activeCameraId;
 
                 var result = $"📹 Current Camera Information:\n";
                 result += $"   🎯 Position: ({pos[0]:F2}, {pos[1]:F2}, {pos[2]:F2})\n";
@@ -144,7 +145,7 @@ public static class KoikatuCameraTools
             }
             else
             {
-                return $"❌ Failed to get camera view: {response?.Message ?? "Unknown error"}";
+                return $"❌ Failed to get camera view: {response?.message ?? "Unknown error"}";
             }
         }
         catch (Exception ex)

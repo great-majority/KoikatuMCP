@@ -15,11 +15,12 @@ builder.Services.AddSingleton<WebSocketService>();
 
 builder.Logging.AddConsole(options =>
 {
-    options.LogToStandardErrorThreshold = LogLevel.Information;
+    options.LogToStandardErrorThreshold = LogLevel.Debug;
 });
 
-// Add custom file logging
-builder.Logging.AddProvider(new FileLoggerProvider());
+// Add custom file logging with Debug level
+builder.Logging.AddProvider(new FileLoggerProvider(LogLevel.Debug));
+builder.Logging.SetMinimumLevel(LogLevel.Debug);
 
 var host = builder.Build();
 

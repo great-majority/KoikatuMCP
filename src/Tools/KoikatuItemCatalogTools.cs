@@ -1,8 +1,8 @@
 using System.ComponentModel;
-using System.Text.Json;
 using KoikatuMCP.Services;
-using KoikatuMCP.Models;
 using ModelContextProtocol.Server;
+using KKStudioSocket.Models.Requests;
+using KKStudioSocket.Models.Responses;
 
 namespace KoikatuMCP.Tools;
 
@@ -21,35 +21,26 @@ public static class KoikatuItemCatalogTools
                 command = "list-groups"
             };
 
-            var responseJson = await webSocketService.SendRequestAsync<ItemCommand, string>(request);
+            var response = await webSocketService.SendRequestAsync<ItemCommand, ItemGroupsResponse>(request);
 
-            if (string.IsNullOrEmpty(responseJson))
+            if (response?.type == "success" && response.data != null)
             {
-                return "❌ Failed to get item groups: Empty response";
-            }
-
-            var response = JsonSerializer.Deserialize<ItemCatalogResponse>(responseJson);
-
-            if (response?.Type == "success" && response.Data != null)
-            {
-                var groups = JsonSerializer.Deserialize<List<ItemGroup>>(response.Data.ToString()!);
-
-                if (groups == null || groups.Count == 0)
+                if (response.data.Count == 0)
                 {
                     return "📭 No item groups found";
                 }
 
                 var result = "📦 Available Item Groups:\n";
-                foreach (var group in groups)
+                foreach (var group in response.data)
                 {
-                    result += $"   🏷️ Group {group.Id}: {group.Name} ({group.CategoryCount} categories)\n";
+                    result += $"   🏷️ Group {group.id}: {group.name} ({group.categoryCount} categories)\n";
                 }
 
                 return result;
             }
             else
             {
-                return $"❌ Failed to get item groups: {response?.Data?.ToString() ?? "Unknown error"}";
+                return $"❌ Failed to get item groups: {response?.message ?? "Unknown error"}";
             }
         }
         catch (Exception ex)
@@ -72,35 +63,26 @@ public static class KoikatuItemCatalogTools
                 groupId = groupId
             };
 
-            var responseJson = await webSocketService.SendRequestAsync<ItemCommand, string>(request);
+            var response = await webSocketService.SendRequestAsync<ItemCommand, ItemGroupDetailResponse>(request);
 
-            if (string.IsNullOrEmpty(responseJson))
+            if (response?.type == "success" && response.data != null)
             {
-                return "❌ Failed to get item categories: Empty response";
-            }
-
-            var response = JsonSerializer.Deserialize<ItemCatalogResponse>(responseJson);
-
-            if (response?.Type == "success" && response.Data != null)
-            {
-                var groupData = JsonSerializer.Deserialize<ItemGroup>(response.Data.ToString()!);
-
-                if (groupData?.Categories == null || groupData.Categories.Count == 0)
+                if (response.data.categories == null || response.data.categories.Count == 0)
                 {
                     return $"📭 No categories found in group {groupId}";
                 }
 
-                var result = $"📁 Categories in Group {groupId} ({groupData.Name}):\n";
-                foreach (var category in groupData.Categories)
+                var result = $"📁 Categories in Group {groupId} ({response.data.name}):\n";
+                foreach (var category in response.data.categories)
                 {
-                    result += $"   📂 Category {category.Id}: {category.Name} ({category.ItemCount} items)\n";
+                    result += $"   📂 Category {category.id}: {category.name} ({category.itemCount} items)\n";
                 }
 
                 return result;
             }
             else
             {
-                return $"❌ Failed to get item categories: {response?.Data?.ToString() ?? "Unknown error"}";
+                return $"❌ Failed to get item categories: {response?.message ?? "Unknown error"}";
             }
         }
         catch (Exception ex)
@@ -125,35 +107,26 @@ public static class KoikatuItemCatalogTools
                 categoryId = categoryId
             };
 
-            var responseJson = await webSocketService.SendRequestAsync<ItemCommand, string>(request);
+            var response = await webSocketService.SendRequestAsync<ItemCommand, ItemCategoryDetailResponse>(request);
 
-            if (string.IsNullOrEmpty(responseJson))
+            if (response?.type == "success" && response.data != null)
             {
-                return "❌ Failed to get category items: Empty response";
-            }
-
-            var response = JsonSerializer.Deserialize<ItemCatalogResponse>(responseJson);
-
-            if (response?.Type == "success" && response.Data != null)
-            {
-                var categoryData = JsonSerializer.Deserialize<ItemCategory>(response.Data.ToString()!);
-
-                if (categoryData?.Items == null || categoryData.Items.Count == 0)
+                if (response.data.items == null || response.data.items.Count == 0)
                 {
                     return $"📭 No items found in category {categoryId} of group {groupId}";
                 }
 
-                var result = $"🔧 Items in Group {groupId}, Category {categoryId} ({categoryData.Name}):\n";
-                foreach (var item in categoryData.Items)
+                var result = $"🔧 Items in Group {groupId}, Category {categoryId} ({response.data.name}):\n";
+                foreach (var item in response.data.items)
                 {
-                    result += $"   🎯 Item {item.Id}: {item.Name}\n";
+                    result += $"   🎯 Item {item.id}: {item.name}\n";
 
-                    if (item.Properties != null)
+                    if (item.properties != null)
                     {
-                        var props = item.Properties;
-                        result += $"      • Colors: {props.ColorSlots}, Patterns: {props.PatternSlots}\n";
-                        result += $"      • Scale: {props.IsScale}, Anime: {props.IsAnime}\n";
-                        result += $"      • Glass: {props.IsGlass}, Emission: {props.IsEmission}\n";
+                        var props = item.properties;
+                        result += $"      • Colors: {props.colorSlots}, Patterns: {props.patternSlots}\n";
+                        result += $"      • Scale: {props.isScale}, Anime: {props.isAnime}\n";
+                        result += $"      • Glass: {props.isGlass}, Emission: {props.isEmission}\n";
                     }
                 }
 
@@ -161,7 +134,7 @@ public static class KoikatuItemCatalogTools
             }
             else
             {
-                return $"❌ Failed to get category items: {response?.Data?.ToString() ?? "Unknown error"}";
+                return $"❌ Failed to get category items: {response?.message ?? "Unknown error"}";
             }
         }
         catch (Exception ex)
