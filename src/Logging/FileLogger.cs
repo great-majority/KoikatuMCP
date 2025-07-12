@@ -6,12 +6,14 @@ public class FileLogger : ILogger
 {
     private readonly string _categoryName;
     private readonly string _logFilePath;
+    private readonly LogLevel _minimumLevel;
     private static readonly object _lock = new();
 
-    public FileLogger(string categoryName, string logFilePath)
+    public FileLogger(string categoryName, string logFilePath, LogLevel minimumLevel)
     {
         _categoryName = categoryName;
         _logFilePath = logFilePath;
+        _minimumLevel = minimumLevel;
     }
 
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull
@@ -21,7 +23,7 @@ public class FileLogger : ILogger
 
     public bool IsEnabled(LogLevel logLevel)
     {
-        return logLevel >= LogLevel.Information;
+        return logLevel >= _minimumLevel;
     }
 
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)

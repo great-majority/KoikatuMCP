@@ -1,8 +1,8 @@
 using System.ComponentModel;
-using System.Text.Json;
-using KoikatuMCP.Models;
 using KoikatuMCP.Services;
 using ModelContextProtocol.Server;
+using KKStudioSocket.Models.Requests;
+using KKStudioSocket.Models.Responses;
 
 namespace KoikatuMCP.Tools;
 
@@ -23,15 +23,15 @@ public static class KoikatuStudioTools
                 timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             };
 
-            var response = await webSocketService.SendRequestAsync<PingCommand, WebSocketResponse>(request);
+            var response = await webSocketService.SendRequestAsync<PingCommand, PongResponse>(request);
 
-            if (response?.Type == "pong")
+            if (response?.type == "pong")
             {
-                return $"✅ Ping successful! Server responded with: {response.Message}";
+                return $"✅ Ping successful! Server responded with: {response.message}";
             }
             else
             {
-                return $"❌ Ping failed. Unexpected response: {response?.Type}";
+                return $"❌ Ping failed. Unexpected response: {response?.type}";
             }
         }
         catch (Exception ex)
@@ -43,8 +43,8 @@ public static class KoikatuStudioTools
     [McpServerTool, Description("Get the hierarchical structure of objects in the scene")]
     public static async Task<string> Tree(
         WebSocketService webSocketService,
-        [Description("Maximum depth to retrieve (optional)")] int? depth = null,
-        [Description("Specific object ID to get subtree from (optional)")] int? objectId = null)
+        [Description("Maximum depth to retrieve (default: 1)")] int? depth = 1,
+        [Description("Specific object ID to get subtree from (optional). If not specified, retrieves all root objects in the scene")] int? objectId = null)
     {
         try
         {
@@ -55,23 +55,15 @@ public static class KoikatuStudioTools
                 id = objectId
             };
 
-            var responseJson = await webSocketService.SendRequestAsync<TreeCommand, string>(request);
+            var response = await webSocketService.SendRequestAsync<TreeCommand, TreeResponse>(request);
 
-            if (string.IsNullOrEmpty(responseJson))
-            {
-                return "❌ Failed to get scene tree: Empty response";
-            }
-
-            // Parse the response to validate it's a valid scene tree
-            var sceneObjects = JsonSerializer.Deserialize<List<SceneObject>>(responseJson);
-
-            if (sceneObjects == null || sceneObjects.Count == 0)
+            if (response?.data == null || response.data.Count == 0)
             {
                 return "📭 Scene is empty - no objects found";
             }
 
             // Format the response for better readability
-            var formattedResponse = FormatSceneTree(sceneObjects, 0);
+            var formattedResponse = FormatSceneTree(response.data, 0);
             return $"🌲 Scene Tree:\n{formattedResponse}";
 
         }
@@ -81,35 +73,35 @@ public static class KoikatuStudioTools
         }
     }
 
-    private static string FormatSceneTree(List<SceneObject> objects, int indent)
+    private static string FormatSceneTree(List<TreeNode> objects, int indent)
     {
         var result = new System.Text.StringBuilder();
         var indentStr = new string(' ', indent * 2);
 
         foreach (var obj in objects)
         {
-            result.AppendLine($"{indentStr}📦 {obj.Name} (ID: {obj.ObjectInfo.Id}, Type: {obj.ObjectInfo.Type})");
+            result.AppendLine($"{indentStr}📦 {obj.name} (ID: {obj.objectInfo.id}, Type: {obj.objectInfo.type})");
 
-            if (obj.ObjectInfo.Transform != null)
+            if (obj.objectInfo.transform != null)
             {
-                var pos = obj.ObjectInfo.Transform.Pos;
-                var rot = obj.ObjectInfo.Transform.Rot;
-                var scale = obj.ObjectInfo.Transform.Scale;
+                var pos = obj.objectInfo.transform.pos;
+                var rot = obj.objectInfo.transform.rot;
+                var scale = obj.objectInfo.transform.scale;
                 result.AppendLine($"{indentStr}   🎯 Position: ({pos[0]:F2}, {pos[1]:F2}, {pos[2]:F2})");
                 result.AppendLine($"{indentStr}   🔄 Rotation: ({rot[0]:F2}, {rot[1]:F2}, {rot[2]:F2})");
                 result.AppendLine($"{indentStr}   📏 Scale: ({scale[0]:F2}, {scale[1]:F2}, {scale[2]:F2})");
             }
 
-            if (obj.ObjectInfo.ItemDetail != null)
+            if (obj.objectInfo.itemDetail != null)
             {
-                var detail = obj.ObjectInfo.ItemDetail;
-                result.AppendLine($"{indentStr}   📋 Item Detail: Group={detail.Group}, Category={detail.Category}, ItemId={detail.ItemId}");
+                var detail = obj.objectInfo.itemDetail;
+                result.AppendLine($"{indentStr}   📋 Item Detail: Group={detail.group}, Category={detail.category}, ItemId={detail.itemId}");
             }
 
-            if (obj.Children.Count > 0)
+            if (obj.children.Count > 0)
             {
-                result.AppendLine($"{indentStr}   📁 Children ({obj.Children.Count}):");
-                result.Append(FormatSceneTree(obj.Children, indent + 2));
+                result.AppendLine($"{indentStr}   📁 Children ({obj.children.Count}):");
+                result.Append(FormatSceneTree(obj.children, indent + 2));
             }
         }
 
@@ -134,15 +126,15 @@ public static class KoikatuStudioTools
                 itemId = itemId
             };
 
-            var response = await webSocketService.SendRequestAsync<AddCommand, WebSocketResponse>(request);
+            var response = await webSocketService.SendRequestAsync<AddCommand, AddSuccessResponse>(request);
 
-            if (response?.Type == "success")
+            if (response?.type == "success")
             {
-                return $"✅ Item added successfully! Object ID: {response.ObjectId}. {response.Message}";
+                return $"✅ Item added successfully! Object ID: {response.objectId}. {response.message}";
             }
             else
             {
-                return $"❌ Failed to add item: {response?.Message ?? "Unknown error"}";
+                return $"❌ Failed to add item: {response?.message ?? "Unknown error"}";
             }
         }
         catch (Exception ex)
@@ -165,15 +157,15 @@ public static class KoikatuStudioTools
                 lightId = lightId
             };
 
-            var response = await webSocketService.SendRequestAsync<AddCommand, WebSocketResponse>(request);
+            var response = await webSocketService.SendRequestAsync<AddCommand, AddSuccessResponse>(request);
 
-            if (response?.Type == "success")
+            if (response?.type == "success")
             {
-                return $"✅ Light added successfully! Object ID: {response.ObjectId}. {response.Message}";
+                return $"✅ Light added successfully! Object ID: {response.objectId}. {response.message}";
             }
             else
             {
-                return $"❌ Failed to add light: {response?.Message ?? "Unknown error"}";
+                return $"❌ Failed to add light: {response?.message ?? "Unknown error"}";
             }
         }
         catch (Exception ex)
@@ -202,15 +194,15 @@ public static class KoikatuStudioTools
                 scale = scale
             };
 
-            var response = await webSocketService.SendRequestAsync<UpdateCommand, WebSocketResponse>(request);
+            var response = await webSocketService.SendRequestAsync<UpdateCommand, SuccessResponse>(request);
 
-            if (response?.Type == "success")
+            if (response?.type == "success")
             {
-                return $"✅ Transform updated successfully! {response.Message}";
+                return $"✅ Transform updated successfully! {response.message}";
             }
             else
             {
-                return $"❌ Failed to update transform: {response?.Message ?? "Unknown error"}";
+                return $"❌ Failed to update transform: {response?.message ?? "Unknown error"}";
             }
         }
         catch (Exception ex)
@@ -232,15 +224,15 @@ public static class KoikatuStudioTools
                 id = objectId
             };
 
-            var response = await webSocketService.SendRequestAsync<DeleteCommand, WebSocketResponse>(request);
+            var response = await webSocketService.SendRequestAsync<DeleteCommand, SuccessResponse>(request);
 
-            if (response?.Type == "success")
+            if (response?.type == "success")
             {
-                return $"✅ Object deleted successfully! {response.Message}";
+                return $"✅ Object deleted successfully! {response.message}";
             }
             else
             {
-                return $"❌ Failed to delete object: {response?.Message ?? "Unknown error"}";
+                return $"❌ Failed to delete object: {response?.message ?? "Unknown error"}";
             }
         }
         catch (Exception ex)
