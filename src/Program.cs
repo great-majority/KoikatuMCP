@@ -19,8 +19,8 @@ builder.Logging.AddConsole(options =>
 });
 
 // Add custom file logging with Debug level
-builder.Logging.AddProvider(new FileLoggerProvider(LogLevel.Debug));
-builder.Logging.SetMinimumLevel(LogLevel.Debug);
+builder.Logging.AddProvider(new FileLoggerProvider(LogLevel.Information));
+builder.Logging.SetMinimumLevel(LogLevel.Information);
 
 var host = builder.Build();
 
