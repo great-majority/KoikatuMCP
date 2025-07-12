@@ -24,7 +24,7 @@ public static class KoikatuCameraTools
                 command = "setview",
                 pos = position,
                 rot = rotation,
-                fov = fov ?? 0
+                fov = fov
             };
 
             var response = await webSocketService.SendRequestAsync<CameraCommand, SuccessResponse>(request);

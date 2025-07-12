@@ -5,26 +5,26 @@ namespace KKStudioSocket.Models.Requests
     [Serializable]
     public class BaseCommand
     {
-        public string type;
+        public required string type;
     }
 
     [Serializable]
     public class PingCommand : BaseCommand
     {
-        public string message;
-        public long timestamp;
+        public string? message;
+        public long? timestamp;
     }
 
     [Serializable]
     public class UpdateCommand : BaseCommand
     {
-        public string command;
+        public required string command;
         public int id;
-        public float[] pos;
-        public float[] rot;
-        public float[] scale;
-        public float[] color;
-        public int colorIndex;
+        public float[]? pos;
+        public float[]? rot;
+        public float[]? scale;
+        public float[]? color;
+        public int? colorIndex;
         public float? alpha;
         public bool? visible;
         public float? intensity; // Light intensity (0.1-2.0)
@@ -36,23 +36,23 @@ namespace KKStudioSocket.Models.Requests
     [Serializable]
     public class AddCommand : BaseCommand
     {
-        public string command;
-        public int group;
-        public int category;
-        public int itemId;
-        public int lightId;
+        public required string command;
+        public int? group;
+        public int? category;
+        public int? itemId;
+        public int? lightId;
         public int? parentId;
-        public string path;
-        public string sex;
-        public string name;
+        public string? path;
+        public string? sex;
+        public string? name;
     }
 
     [Serializable]
     public class HierarchyCommand : BaseCommand
     {
-        public string command;
+        public required string command;
         public int childId;
-        public int parentId; // Required for attach, ignored for detach
+        public int? parentId; // Required for attach, ignored for detach
     }
 
     [Serializable]
@@ -64,19 +64,19 @@ namespace KKStudioSocket.Models.Requests
     [Serializable]
     public class CameraCommand : BaseCommand
     {
-        public string command;
-        public float[] pos;
-        public float[] rot;
-        public float fov;
-        public int cameraId; // For switching to specific camera object
+        public required string command;
+        public float[]? pos;
+        public float[]? rot;
+        public float? fov;
+        public int? cameraId; // For switching to specific camera object
     }
 
     [Serializable]
     public class ItemCommand : BaseCommand
     {
-        public string command;
-        public int groupId = -1;
-        public int categoryId = -1;
+        public required string command;
+        public int? groupId;
+        public int? categoryId;
     }
 
     [Serializable]

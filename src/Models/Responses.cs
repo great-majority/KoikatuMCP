@@ -6,14 +6,14 @@ namespace KKStudioSocket.Models.Responses
     [Serializable]
     public abstract class BaseResponse
     {
-        public string type;
+        public required string type;
     }
 
     [Serializable]
     public class SuccessResponse : BaseResponse
     {
-        public string message;
-        
+        public required string message;
+
         public SuccessResponse()
         {
             type = "success";
@@ -23,13 +23,13 @@ namespace KKStudioSocket.Models.Responses
     [Serializable]
     public class ErrorResponse : BaseResponse
     {
-        public string message;
-        
+        public required string message;
+
         public ErrorResponse()
         {
             type = "error";
         }
-        
+
         public ErrorResponse(string message)
         {
             type = "error";
@@ -40,9 +40,9 @@ namespace KKStudioSocket.Models.Responses
     [Serializable]
     public class PongResponse : BaseResponse
     {
-        public string message;
+        public required string message;
         public long timestamp;
-        
+
         public PongResponse()
         {
             type = "pong";
@@ -53,32 +53,32 @@ namespace KKStudioSocket.Models.Responses
     [Serializable]
     public class TreeResponse : SuccessResponse
     {
-        public List<TreeNode> data;
+        public required List<TreeNode> data;
     }
 
     [Serializable]
     public class TreeNode
     {
-        public string name;
-        public ObjectInfo objectInfo;
-        public List<TreeNode> children;
+        public required string name;
+        public required ObjectInfo objectInfo;
+        public required List<TreeNode> children;
     }
 
     [Serializable]
     public class ObjectInfo
     {
         public int id;
-        public string type;
-        public Transform transform;
-        public ItemDetail itemDetail; // nullable for non-items
+        public required string type;
+        public required Transform transform;
+        public ItemDetail? itemDetail; // nullable for non-items
     }
 
     [Serializable]
     public class Transform
     {
-        public float[] pos; // [x, y, z]
-        public float[] rot; // [x, y, z]
-        public float[] scale; // [x, y, z]
+        public required float[] pos; // [x, y, z]
+        public required float[] rot; // [x, y, z]
+        public required float[] scale; // [x, y, z]
     }
 
     [Serializable]
@@ -93,7 +93,7 @@ namespace KKStudioSocket.Models.Responses
     [Serializable]
     public class ItemCommandResponse : SuccessResponse
     {
-        public string command;
+        public required string command;
         public int? groupId;
         public int? categoryId;
     }
@@ -101,60 +101,60 @@ namespace KKStudioSocket.Models.Responses
     [Serializable]
     public class ItemGroupsResponse : ItemCommandResponse
     {
-        public List<ItemGroup> data;
+        public required List<ItemGroup> data;
     }
 
     [Serializable]
     public class ItemGroup
     {
         public int id;
-        public string name;
+        public required string name;
         public int categoryCount;
     }
 
     [Serializable]
     public class ItemGroupDetailResponse : ItemCommandResponse
     {
-        public ItemGroupDetail data;
+        public required ItemGroupDetail data;
     }
 
     [Serializable]
     public class ItemGroupDetail
     {
         public int id;
-        public string name;
-        public List<ItemCategory> categories;
+        public required string name;
+        public required List<ItemCategory> categories;
     }
 
     [Serializable]
     public class ItemCategory
     {
         public int id;
-        public string name;
+        public required string name;
         public int itemCount;
     }
 
     [Serializable]
     public class ItemCategoryDetailResponse : ItemCommandResponse
     {
-        public ItemCategoryDetail data;
+        public required ItemCategoryDetail data;
     }
 
     [Serializable]
     public class ItemCategoryDetail
     {
         public int id;
-        public string name;
+        public required string name;
         public int groupId;
-        public List<Item> items;
+        public required List<Item> items;
     }
 
     [Serializable]
     public class Item
     {
         public int id;
-        public string name;
-        public ItemProperties properties;
+        public required string name;
+        public required ItemProperties properties;
     }
 
     [Serializable]
@@ -169,7 +169,7 @@ namespace KKStudioSocket.Models.Responses
         public bool isEmission;
         public bool isGlass;
         public int bones;
-        public string childRoot;
+        public required string childRoot;
     }
 
     // Add Command関連レスポンス
@@ -183,16 +183,16 @@ namespace KKStudioSocket.Models.Responses
     [Serializable]
     public class ScreenshotSuccessResponse : SuccessResponse
     {
-        public ScreenshotData data;
+        public required ScreenshotData data;
     }
 
     [Serializable]
     public class ScreenshotData
     {
-        public string image;
+        public required string image;
         public int width;
         public int height;
-        public string format;
+        public required string format;
         public bool transparency;
         public int size;
     }
@@ -201,37 +201,37 @@ namespace KKStudioSocket.Models.Responses
     [Serializable]
     public class ItemCatalogResponse : ItemCommandResponse
     {
-        public List<CatalogGroup> data;
+        public required List<CatalogGroup> data;
     }
 
     [Serializable]
     public class CatalogGroup
     {
         public int id;
-        public string name;
-        public string type;
-        public List<CatalogCategory> categories;
+        public required string name;
+        public required string type;
+        public required List<CatalogCategory> categories;
     }
 
     [Serializable]
     public class CatalogCategory
     {
         public int id;
-        public string name;
-        public string type;
-        public List<CatalogItem> items;
+        public required string name;
+        public required string type;
+        public required List<CatalogItem> items;
     }
 
     [Serializable]
     public class CatalogItem
     {
         public int id;
-        public string name;
-        public string type;
+        public required string name;
+        public required string type;
         public int groupId;
         public int categoryId;
-        public CatalogItemProperties properties;
-        public CatalogItemFile file;
+        public required CatalogItemProperties properties;
+        public required CatalogItemFile file;
     }
 
     [Serializable]
@@ -245,26 +245,26 @@ namespace KKStudioSocket.Models.Responses
         public bool hasPattern;
         public int colorSlots;
         public int patternSlots;
-        public string childRoot;
+        public required string childRoot;
         public int bones;
     }
 
     [Serializable]
     public class CatalogItemFile
     {
-        public string name;
-        public string assetBundle;
-        public string manifest;
+        public required string name;
+        public required string assetBundle;
+        public required string manifest;
     }
 
     // Camera関連レスポンス
     [Serializable]
     public class CameraViewResponse : SuccessResponse
     {
-        public float[] pos;
-        public float[] rot;
+        public required float[] pos;
+        public required float[] rot;
         public float fov;
-        public string mode;
+        public required string mode;
         public int? activeCameraId;
     }
 }

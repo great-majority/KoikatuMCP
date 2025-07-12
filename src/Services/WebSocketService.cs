@@ -1,6 +1,7 @@
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using KKStudioSocket.Models.Requests;
 
@@ -25,7 +26,8 @@ public class WebSocketService : IDisposable
         {
             PropertyNamingPolicy = null, // Use original property names (lowercase)
             WriteIndented = true,
-            IncludeFields = true // Include public fields for serialization
+            IncludeFields = true, // Include public fields for serialization
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull // Exclude null values from JSON
         };
     }
 
