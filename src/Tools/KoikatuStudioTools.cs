@@ -211,6 +211,206 @@ public static class KoikatuStudioTools
         }
     }
 
+    [McpServerTool, Description("Add a character to the scene")]
+    public static async Task<string> AddCharacter(
+        WebSocketService webSocketService,
+        [Description("Path to the character file")] string path,
+        [Description("Character sex (male/female)")] string sex)
+    {
+        try
+        {
+            var request = new AddCommand
+            {
+                type = "add",
+                command = "character",
+                path = path,
+                sex = sex
+            };
+
+            var response = await webSocketService.SendRequestAsync<AddCommand, AddSuccessResponse>(request);
+
+            if (response?.type == "success")
+            {
+                return $"✅ Character added successfully! Object ID: {response.objectId}. {response.message}";
+            }
+            else
+            {
+                return $"❌ Failed to add character: {response?.message ?? "Unknown error"}";
+            }
+        }
+        catch (Exception ex)
+        {
+            return $"❌ Failed to add character: {ex.Message}";
+        }
+    }
+
+    [McpServerTool, Description("Add an organizational folder to the scene")]
+    public static async Task<string> AddFolder(
+        WebSocketService webSocketService,
+        [Description("Name of the folder")] string name)
+    {
+        try
+        {
+            var request = new AddCommand
+            {
+                type = "add",
+                command = "folder",
+                name = name
+            };
+
+            var response = await webSocketService.SendRequestAsync<AddCommand, AddSuccessResponse>(request);
+
+            if (response?.type == "success")
+            {
+                return $"✅ Folder added successfully! Object ID: {response.objectId}. {response.message}";
+            }
+            else
+            {
+                return $"❌ Failed to add folder: {response?.message ?? "Unknown error"}";
+            }
+        }
+        catch (Exception ex)
+        {
+            return $"❌ Failed to add folder: {ex.Message}";
+        }
+    }
+
+    [McpServerTool, Description("Add a camera object to the scene")]
+    public static async Task<string> AddCamera(
+        WebSocketService webSocketService,
+        [Description("Name of the camera")] string name)
+    {
+        try
+        {
+            var request = new AddCommand
+            {
+                type = "add",
+                command = "camera",
+                name = name
+            };
+
+            var response = await webSocketService.SendRequestAsync<AddCommand, AddSuccessResponse>(request);
+
+            if (response?.type == "success")
+            {
+                return $"✅ Camera added successfully! Object ID: {response.objectId}. {response.message}";
+            }
+            else
+            {
+                return $"❌ Failed to add camera: {response?.message ?? "Unknown error"}";
+            }
+        }
+        catch (Exception ex)
+        {
+            return $"❌ Failed to add camera: {ex.Message}";
+        }
+    }
+
+    [McpServerTool, Description("Update the color or material properties of an object")]
+    public static async Task<string> UpdateColor(
+        WebSocketService webSocketService,
+        [Description("Object ID to update")] int objectId,
+        [Description("Color values [R, G, B, A] (0.0-1.0) (optional)")] float[]? color = null)
+    {
+        try
+        {
+            var request = new UpdateCommand
+            {
+                type = "update",
+                command = "color",
+                id = objectId,
+                color = color
+            };
+
+            var response = await webSocketService.SendRequestAsync<UpdateCommand, SuccessResponse>(request);
+
+            if (response?.type == "success")
+            {
+                return $"✅ Color updated successfully! {response.message}";
+            }
+            else
+            {
+                return $"❌ Failed to update color: {response?.message ?? "Unknown error"}";
+            }
+        }
+        catch (Exception ex)
+        {
+            return $"❌ Failed to update color: {ex.Message}";
+        }
+    }
+
+    [McpServerTool, Description("Update the visibility of an object")]
+    public static async Task<string> UpdateVisibility(
+        WebSocketService webSocketService,
+        [Description("Object ID to update")] int objectId,
+        [Description("Visibility state (true=visible, false=hidden)")] bool visible)
+    {
+        try
+        {
+            var request = new UpdateCommand
+            {
+                type = "update",
+                command = "visibility",
+                id = objectId,
+                visible = visible
+            };
+
+            var response = await webSocketService.SendRequestAsync<UpdateCommand, SuccessResponse>(request);
+
+            if (response?.type == "success")
+            {
+                return $"✅ Visibility updated successfully! Object {(visible ? "shown" : "hidden")}. {response.message}";
+            }
+            else
+            {
+                return $"❌ Failed to update visibility: {response?.message ?? "Unknown error"}";
+            }
+        }
+        catch (Exception ex)
+        {
+            return $"❌ Failed to update visibility: {ex.Message}";
+        }
+    }
+
+    [McpServerTool, Description("Update light-specific properties")]
+    public static async Task<string> UpdateLight(
+        WebSocketService webSocketService,
+        [Description("Light object ID to update")] int objectId,
+        [Description("Light intensity (optional)")] float? intensity = null,
+        [Description("Light range (optional)")] float? range = null,
+        [Description("Spot light angle in degrees (optional)")] float? spotAngle = null,
+        [Description("Enable/disable light (optional)")] bool? enable = null)
+    {
+        try
+        {
+            var request = new UpdateCommand
+            {
+                type = "update",
+                command = "light",
+                id = objectId,
+                intensity = intensity,
+                range = range,
+                spotAngle = spotAngle,
+                enable = enable
+            };
+
+            var response = await webSocketService.SendRequestAsync<UpdateCommand, SuccessResponse>(request);
+
+            if (response?.type == "success")
+            {
+                return $"✅ Light properties updated successfully! {response.message}";
+            }
+            else
+            {
+                return $"❌ Failed to update light: {response?.message ?? "Unknown error"}";
+            }
+        }
+        catch (Exception ex)
+        {
+            return $"❌ Failed to update light: {ex.Message}";
+        }
+    }
+
     [McpServerTool, Description("Delete an object from the scene")]
     public static async Task<string> Delete(
         WebSocketService webSocketService,

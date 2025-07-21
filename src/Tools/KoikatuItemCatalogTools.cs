@@ -142,4 +142,68 @@ public static class KoikatuItemCatalogTools
             return $"❌ Failed to get category items: {ex.Message}";
         }
     }
+
+    [McpServerTool, Description("Get the complete item catalog with all groups, categories, and items")]
+    public static async Task<string> ItemCatalog(
+        WebSocketService webSocketService)
+    {
+        try
+        {
+            var request = new ItemCommand
+            {
+                type = "item",
+                command = "catalog"
+            };
+
+            var response = await webSocketService.SendRequestAsync<ItemCommand, ItemCatalogResponse>(request);
+
+            if (response?.type == "success" && response.data != null)
+            {
+                if (response.data.Count == 0)
+                {
+                    return "📭 Item catalog is empty";
+                }
+
+                var result = "📚 Complete Item Catalog:\n";
+                int totalItems = 0;
+
+                foreach (var group in response.data)
+                {
+                    result += $"\n📦 Group {group.id}: {group.name} ({group.categories.Count} categories)\n";
+
+                    foreach (var category in group.categories)
+                    {
+                        result += $"   📂 Category {category.id}: {category.name} ({category.items.Count} items)\n";
+                        totalItems += category.items.Count;
+
+                        // For readability, limit item details in full catalog view
+                        if (category.items.Count <= 5)
+                        {
+                            foreach (var item in category.items)
+                            {
+                                result += $"      🎯 {item.id}: {item.name}\n";
+                            }
+                        }
+                        else
+                        {
+                            result += $"      🎯 {category.items[0].id}: {category.items[0].name}\n";
+                            result += $"      🎯 {category.items[1].id}: {category.items[1].name}\n";
+                            result += $"      ... and {category.items.Count - 2} more items\n";
+                        }
+                    }
+                }
+
+                result += $"\n📊 Total: {response.data.Count} groups, {totalItems} items";
+                return result;
+            }
+            else
+            {
+                return $"❌ Failed to get item catalog: {response?.message ?? "Unknown error"}";
+            }
+        }
+        catch (Exception ex)
+        {
+            return $"❌ Failed to get item catalog: {ex.Message}";
+        }
+    }
 }
