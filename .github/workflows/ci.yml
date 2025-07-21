@@ -57,6 +57,14 @@ jobs:
       with:
         dotnet-version: '8.0.x'
         
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        
+    - name: Install DXT CLI
+      run: npm install -g @anthropic-ai/dxt
+        
     - name: Publish
       run: |
         dotnet publish src/KoikatuMCP.csproj \
@@ -77,10 +85,24 @@ jobs:
         cd publish/win-x64
         zip -r ../../KoikatuMCP-win-x64.zip .
         
+    - name: Create DXT package
+      run: |
+        # Prepare DXT build directory
+        cp publish/win-x64/KoikatuMCP.exe build/
+        
+        # Create DXT package
+        cd build
+        dxt pack
+        
+        # Rename DXT file to include version
+        mv build.dxt ../KoikatuMCP.dxt
+        
     - name: Upload release asset
       uses: softprops/action-gh-release@v2
       with:
-        files: KoikatuMCP-win-x64.zip
+        files: |
+          KoikatuMCP-win-x64.zip
+          KoikatuMCP.dxt
 
   lint:
     name: Code Quality Check

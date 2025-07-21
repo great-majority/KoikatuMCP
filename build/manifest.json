@@ -1,0 +1,122 @@
+{
+  "dxt_version": "0.1",
+  "name": "koikatu-mcp",
+  "display_name": "Koikatsu Studio MCP Server",
+  "description": "Model Context Protocol server for controlling Koikatsu Studio via WebSocket",
+  "version": "0.0.1",
+  "author": {
+    "name": "great-majority"
+  },
+  "server": {
+    "type": "binary",
+    "entry_point": "KoikatuMCP.exe",
+    "mcp_config": {
+      "command": "${__dirname}/KoikatuMCP.exe",
+      "env": {
+        "KKSTUDIOSOCKET_URL": "ws://127.0.0.1:8765/ws"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "ping",
+      "description": "Test connection to KKStudioSocket WebSocket server"
+    },
+    {
+      "name": "screenshot",
+      "description": "Capture the current Studio view as a PNG image"
+    },
+    {
+      "name": "add_camera",
+      "description": "Add a camera object to the scene"
+    },
+    {
+      "name": "add_character",
+      "description": "Add a character to the scene"
+    },
+    {
+      "name": "add_item",
+      "description": "Add an item to the scene"
+    },
+    {
+      "name": "add_light",
+      "description": "Add a light to the scene"
+    },
+    {
+      "name": "add_folder",
+      "description": "Add an organizational folder to the scene"
+    },
+    {
+      "name": "delete",
+      "description": "Delete an object from the scene"
+    },
+    {
+      "name": "update_transform",
+      "description": "Update position, rotation, or scale of an object"
+    },
+    {
+      "name": "update_visibility",
+      "description": "Update the visibility of an object"
+    },
+    {
+      "name": "update_color",
+      "description": "Update the color or material properties of an object"
+    },
+    {
+      "name": "update_light",
+      "description": "Update light-specific properties"
+    },
+    {
+      "name": "camera_setview",
+      "description": "Set the camera position, rotation, and field of view"
+    },
+    {
+      "name": "camera_getview",
+      "description": "Retrieve current camera information"
+    },
+    {
+      "name": "camera_switch",
+      "description": "Switch the viewport to a specific camera object"
+    },
+    {
+      "name": "camera_free",
+      "description": "Return to free camera mode (default)"
+    },
+    {
+      "name": "hierarchy_attach",
+      "description": "Parent an object to another object in the scene hierarchy"
+    },
+    {
+      "name": "hierarchy_detach",
+      "description": "Detach an object from its parent in the scene hierarchy"
+    },
+    {
+      "name": "tree",
+      "description": "Get the hierarchical structure of objects in the scene"
+    },
+    {
+      "name": "item_catalog",
+      "description": "Get the complete item catalog with all groups, categories, and items"
+    },
+    {
+      "name": "item_list_groups",
+      "description": "Get a list of all item groups"
+    },
+    {
+      "name": "item_list_group",
+      "description": "Get categories within a specific group"
+    },
+    {
+      "name": "item_list_category",
+      "description": "Get all items within a specific category"
+    }
+  ],
+  "compatibility": {
+    "platforms": [
+      "win32"
+    ],
+    "runtime": {
+      "type": "binary"
+    }
+  }
+}

@@ -6,6 +6,7 @@
 - **Windows** (primary development platform)
 - **.NET 8.0 SDK** or later
 - **PowerShell** (for build scripts)
+- **Node.js and npm** (for DXT packaging with `@anthropic-ai/dxt`)
 - **Git**
 - **Koikatsu/Koikatsu Sunshine** with KKStudioSocket plugin (for testing)
 
@@ -58,15 +59,44 @@ KoikatuMCP/
 # Standard build
 .\build.ps1
 
-# Clean build
-.\build.ps1 -Clean
-
 # Debug build
-.\build.ps1 -Configuration Debug
+.\build.ps1 build Debug
+
+# Clean all outputs
+.\build.ps1 clean
+
+# Rebuild (clean + build)
+.\build.ps1 rebuild
 
 # Format code
-.\build.ps1 -Format
+.\build.ps1 format
 
-# Publish single-file executable
-.\build.ps1 -Publish -Runtime win-x64 -SelfContained
+# Publish application
+.\build.ps1 publish
 ```
+
+### DXT Packaging (Claude Desktop Extension)
+```powershell
+# Install DXT CLI tool
+npm install -g @anthropic-ai/dxt
+
+# Prepare DXT package directory
+.\build.ps1 build-dxt
+
+# Create .dxt package file
+.\build.ps1 create-dxt
+
+# Full DXT build workflow
+.\build.ps1 dxt
+```
+
+### Build Script Targets
+- `clean` - Remove all build outputs
+- `restore` - Restore NuGet packages
+- `build` - Build the solution (default)
+- `rebuild` - Clean + restore + build
+- `publish` - Publish the application
+- `format` - Format code using dotnet format
+- `build-dxt` - Prepare DXT package directory
+- `create-dxt` - Create .dxt package file
+- `dxt` - Complete DXT build and packaging workflow
