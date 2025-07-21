@@ -22,6 +22,14 @@ bld/
 [Ll]og/
 [Ll]ogs/
 
+# DXT build artifacts
+build/*.exe
+build/*.dll
+build/*.pdb
+build/*.dxt
+# Keep manifest.json in build directory
+!build/manifest.json
+
 # Visual Studio 2015/2017 cache/options directory
 .vs/
 # Uncomment if you have tasks that create the project's static files in wwwroot
