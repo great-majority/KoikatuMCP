@@ -39,7 +39,7 @@ public class WebSocketService : IDisposable
             using var cancellationTokenSource = new CancellationTokenSource();
             await webSocket.ConnectAsync(new Uri(_uri), cancellationTokenSource.Token);
             _logger.LogInformation("Connected to KKStudioSocket WebSocket server at {Uri}", _uri);
-            
+
             return await SendAndReceiveAsync<TRequest, TResponse>(webSocket, request, timeoutMs, cancellationTokenSource);
         }
         catch (Exception ex)
