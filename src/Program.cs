@@ -11,7 +11,7 @@ builder.Services.AddMcpServer()
     .WithStdioServerTransport()
     .WithToolsFromAssembly();
 
-builder.Services.AddSingleton<WebSocketService>();
+builder.Services.AddTransient<WebSocketService>();
 
 builder.Logging.AddConsole(options =>
 {
