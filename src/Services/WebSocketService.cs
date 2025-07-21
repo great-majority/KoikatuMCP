@@ -12,10 +12,6 @@ public class WebSocketService : IDisposable
     private readonly ILogger<WebSocketService> _logger;
     private readonly string _uri;
     private readonly JsonSerializerOptions _jsonOptions;
-    private readonly SemaphoreSlim _connectionLock = new(1, 1);
-
-    private ClientWebSocket? _webSocket;
-    private CancellationTokenSource? _cancellationTokenSource;
     private bool _disposed;
 
     public WebSocketService(ILogger<WebSocketService> logger)
@@ -37,58 +33,34 @@ public class WebSocketService : IDisposable
         if (_disposed)
             throw new ObjectDisposedException(nameof(WebSocketService));
 
-        await _connectionLock.WaitAsync();
+        ClientWebSocket webSocket = new ClientWebSocket();
         try
         {
-            var webSocket = await GetOrCreateConnectionAsync();
-            return await SendAndReceiveAsync<TRequest, TResponse>(webSocket, request, timeoutMs);
+            using var cancellationTokenSource = new CancellationTokenSource();
+            await webSocket.ConnectAsync(new Uri(_uri), cancellationTokenSource.Token);
+            _logger.LogInformation("Connected to KKStudioSocket WebSocket server at {Uri}", _uri);
+            
+            return await SendAndReceiveAsync<TRequest, TResponse>(webSocket, request, timeoutMs, cancellationTokenSource);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "WebSocket communication failed - Type: {ExceptionType}, Message: {Message}, Request: {RequestType}",
                 ex.GetType().Name, ex.Message, typeof(TRequest).Name);
-            CloseAndDisposeConnection();
             throw;
         }
         finally
         {
-            _connectionLock.Release();
+            await CloseWebSocketAsync(webSocket);
+            webSocket.Dispose();
         }
     }
 
-    private async Task<ClientWebSocket> GetOrCreateConnectionAsync()
-    {
-        // Check if current connection is usable
-        if (_webSocket?.State == WebSocketState.Open)
-        {
-            return _webSocket;
-        }
-
-        // Clean up any existing connection
-        CloseAndDisposeConnection();
-
-        // Create new connection
-        _webSocket = new ClientWebSocket();
-        _cancellationTokenSource = new CancellationTokenSource();
-
-        try
-        {
-            await _webSocket.ConnectAsync(new Uri(_uri), _cancellationTokenSource.Token);
-            _logger.LogInformation("Connected to KKStudioSocket WebSocket server at {Uri}", _uri);
-            return _webSocket;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to connect to WebSocket server at {Uri}", _uri);
-            CloseAndDisposeConnection();
-            throw;
-        }
-    }
 
     private async Task<TResponse?> SendAndReceiveAsync<TRequest, TResponse>(
         ClientWebSocket webSocket,
         TRequest request,
-        int timeoutMs)
+        int timeoutMs,
+        CancellationTokenSource cancellationTokenSource)
         where TRequest : BaseCommand
     {
         var json = JsonSerializer.Serialize(request, _jsonOptions);
@@ -98,7 +70,7 @@ public class WebSocketService : IDisposable
 
         using var timeoutCts = new CancellationTokenSource(timeoutMs);
         using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(
-            _cancellationTokenSource?.Token ?? CancellationToken.None,
+            cancellationTokenSource.Token,
             timeoutCts.Token);
 
         try
@@ -212,52 +184,25 @@ public class WebSocketService : IDisposable
         return Encoding.UTF8.GetString(messageBuilder.ToArray());
     }
 
-    private void CloseAndDisposeConnection()
+    private async Task CloseWebSocketAsync(ClientWebSocket webSocket)
     {
         try
         {
-            _cancellationTokenSource?.Cancel();
-        }
-        catch (ObjectDisposedException)
-        {
-            // Expected if already disposed
-        }
-
-        try
-        {
-            if (_webSocket?.State == WebSocketState.Open)
+            if (webSocket?.State == WebSocketState.Open)
             {
-                _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None)
-                    .GetAwaiter().GetResult();
+                await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
+                _logger.LogDebug("WebSocket connection closed successfully");
             }
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Error while closing WebSocket (expected during cleanup)");
         }
-
-        _webSocket?.Dispose();
-        _cancellationTokenSource?.Dispose();
-
-        _webSocket = null;
-        _cancellationTokenSource = null;
     }
 
     public void Dispose()
     {
         if (_disposed) return;
-
-        _connectionLock.Wait();
-        try
-        {
-            CloseAndDisposeConnection();
-            _disposed = true;
-        }
-        finally
-        {
-            _connectionLock.Release();
-        }
-
-        _connectionLock.Dispose();
+        _disposed = true;
     }
 }
